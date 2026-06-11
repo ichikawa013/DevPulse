@@ -1,14 +1,18 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 
-
 WORKDIR /app
 
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
+COPY pom.xml ./pom.xml
+COPY services/feed-service/.mvn/ services/feed-service/.mvn/
+COPY services/feed-service/mvnw services/feed-service/pom.xml services/feed-service/
+COPY services/feed-service/pom.xml services/feed-service/
 
+WORKDIR /app/services/feed-service
+
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
-COPY src ./src
+COPY services/feed-service/src ./src
 RUN ./mvnw package -DskipTests
 
 
@@ -19,5 +23,5 @@ WORKDIR /app
 
 EXPOSE 8082
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/services/feed-service/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]

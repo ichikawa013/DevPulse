@@ -3,12 +3,17 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
+COPY pom.xml ./pom.xml
+COPY services/api-gateway/.mvn/ services/api-gateway/.mvn/
+COPY services/api-gateway/mvnw services/api-gateway/pom.xml services/api-gateway/
+COPY services/api-gateway/pom.xml services/api-gateway/
 
+WORKDIR /app/services/api-gateway
+
+RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
-COPY src ./src
+COPY services/api-gateway/src ./src
 RUN ./mvnw package -DskipTests
 
 
@@ -19,5 +24,5 @@ WORKDIR /app
 
 EXPOSE 8080
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/services/api-gateway/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]
