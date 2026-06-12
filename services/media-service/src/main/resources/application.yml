@@ -22,9 +22,14 @@ management:
     web:
       exposure:
         include: "health,prometheus,info"
+      base-path: /actuator
   endpoint:
+    health:
+      show-details: always
     prometheus:
       enabled: true
+  server:
+    port: 8084
   metrics:
     tags:
       application: ${spring.application.name}
