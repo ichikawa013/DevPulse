@@ -1,9 +1,21 @@
+debug: true
+
 server:
   port: 8081
 
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.graphql.security.GraphQlWebMvcSecurityAutoConfiguration
   application:
     name: user-service
+
+  graphql:
+    graphiql:
+      enabled: true
+    schema:
+      inspection:
+        enabled: false
 
   data:
     redis:
@@ -11,17 +23,17 @@ spring:
       port: 6379
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/devpulse_users
+    url: jdbc:postgresql://127.0.0.1:5432/devpulse_users
     username: devpulse
     password: devpulse
     driver-class-name: org.postgresql.Driver
 
 
   jpa:
-    database: POSTGRESQL
     show-sql: true
     hibernate:
       ddl-auto: validate
+    open-in-view: false
 
   flyway:
     enabled: true
@@ -45,6 +57,8 @@ logging:
     name: ${spring.application.name}.log
   level:
     com.devpulse: DEBUG
+    org.flywaydb: DEBUG
+    com.zaxxer.hikari: DEBUG
 
 application:
   security:

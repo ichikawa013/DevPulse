@@ -1,0 +1,62 @@
+type AuthPayload {
+    accessToken: String!
+    refreshToken: String
+    expiresIn: Float!
+    tokenType: String!
+}
+
+input RegisterInput {
+    username: String!
+    email: String!
+    password: String!
+    displayName: String
+}
+
+input LoginInput {
+    email: String!
+    password: String!
+}
+
+input UpdateProfileInput {
+    bio: String
+    avatarUrl: String
+    displayName: String
+}
+
+input UpdatePasswordInput {
+    oldPassword: String!
+    newPassword: String!
+}
+
+#-----Mutation is like saying the content that will be written and mapping it the desired
+#-----output defined as type for specific defined inputs
+type Mutation {
+    register(input: RegisterInput!) : AuthPayload!
+    login(input: LoginInput!): AuthPayload!
+    refreshToken(refreshToken: String!): AuthPayload!
+    logout: Boolean!
+    updateProfile(input: UpdateProfileInput!): PersonalProfile!
+    changePassword(input: UpdatePasswordInput): String!
+}
+
+type PersonalProfile {
+    id: ID!
+    username: String!
+    email: String!
+    displayName: String
+    bio: String
+    avatarUrl: String
+}
+
+type PublicProfile {
+    id: ID!
+    username: String!
+    displayName: String
+    bio: String
+    avatarUrl: String
+}
+
+type Query {
+    getPersonalProfileResponse: PersonalProfile!
+    getPublicProfileResponse(username: String!): PublicProfile!
+}
