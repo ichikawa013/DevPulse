@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="user-service" type="Application" factoryName="Application">
+    <envs>
+      <env name="JWT_SECRET" value="14238e674bd1f754f2072b61ea2b3d81b522f91b6931520ed3483927b5cdb1a2" />
+    </envs>
+    <option name="envFilePaths">
+      <option value="$PROJECT_DIR$/.env" />
+    </option>
+    <option name="MAIN_CLASS_NAME" value="com.devpulse.user_service.UserServiceApplication" />
+    <module name="user-service" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

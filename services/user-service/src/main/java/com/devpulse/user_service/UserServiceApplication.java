@@ -6,10 +6,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
-@EnableCaching
 @EnableJpaAuditing
 public class UserServiceApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(UserServiceApplication.class, args);
 	}

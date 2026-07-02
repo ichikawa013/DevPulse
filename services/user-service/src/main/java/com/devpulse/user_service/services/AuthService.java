@@ -8,6 +8,7 @@ import com.devpulse.user_service.entities.Role;
 import com.devpulse.user_service.entities.User;
 import com.devpulse.user_service.exception.BadRequestHandler;
 import com.devpulse.user_service.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,8 +19,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 public class AuthService {
 
@@ -50,9 +54,11 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest registerRequest) {
         if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            log.warn("Email already exists: {}", registerRequest.getEmail());
             throw new BadRequestHandler("Email already exists");
         }
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
+            log.warn("Username already exists: {}", registerRequest.getUsername());
             throw new BadRequestHandler("Username already taken");
         }
 
@@ -62,8 +68,10 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setDisplayName(registerRequest.getDisplayName());
         user.setRole(Role.ROLE_USER);
+        user.setCreatedAt(Instant.now());
 
         userRepository.save(user);
+        log.info("User registered with username: {}", user.getUsername());
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -71,8 +79,7 @@ public class AuthService {
         redisTemplate.opsForValue().set(
                 "refresh_token:" + user.getUsername(),
                 refreshToken,
-                refreshExpiration,
-                TimeUnit.MILLISECONDS
+                Duration.ofMillis(refreshExpiration)
         );
 
         return new AuthResponse(accessToken, refreshToken, jwtExpiration, "Bearer");
