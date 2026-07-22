@@ -1,0 +1,40 @@
+type Post {
+    id: ID!
+    content: String!
+    imageUrl: String
+    authorEmail: String!
+    createdAt: String!
+}
+
+input CreatePostInput {
+    imageUrl: String
+    content: String!
+}
+
+type PostEdge {
+    node: Post!
+    cursor: String!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    endCursor: String
+}
+
+type Subscription {
+    postCreated: Post!
+}
+
+type PostConnection {
+    edges: [PostEdge!]!
+    pageInfo: PageInfo!
+}
+
+type Mutation {
+    createPost(input: CreatePostInput!) : Post!
+    deletePost(id: ID!) : Boolean!
+}
+
+type Query {
+    feed(first: Int!, after: String): PostConnection!
+}
