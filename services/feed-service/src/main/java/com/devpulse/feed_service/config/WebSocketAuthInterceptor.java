@@ -22,9 +22,11 @@ public class WebSocketAuthInterceptor implements WebSocketGraphQlInterceptor {
     @Override
     public Mono<WebGraphQlResponse> intercept(@NonNull WebGraphQlRequest request, @NonNull Chain chain) {
         Object userId = request.getAttributes().get("X-User-Id");
-        request.configureExecutionInput((executionInput, builder) ->
-                builder.graphQLContext(ctx -> ctx.put("X-User-Id", userId)).build()
-        );
+        if (userId != null) {
+            request.configureExecutionInput((executionInput, builder) ->
+                    builder.graphQLContext(ctx -> ctx.put("X-User-Id", userId)).build()
+            );
+        }
         return chain.next(request);
     }
 }

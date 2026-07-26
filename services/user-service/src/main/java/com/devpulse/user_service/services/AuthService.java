@@ -68,7 +68,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setDisplayName(registerRequest.getDisplayName());
         user.setRole(Role.ROLE_USER);
-        user.setCreatedAt(Instant.now());
 
         userRepository.save(user);
         log.info("User registered with username: {}", user.getUsername());

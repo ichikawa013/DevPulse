@@ -15,6 +15,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -23,7 +27,6 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-
 
     @Override
     protected void doFilterInternal(
@@ -54,13 +57,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String subject = jwtService.verifyToken(token);
+
             HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(request) {
                 @Override
                 public String getHeader(String name) {
-                    if ("X-User-Id".equals(name)) return subject;
+                    if ("X-User-Id".equalsIgnoreCase(name)) return subject;
                     return super.getHeader(name);
                 }
+
+                @Override
+                public Enumeration<String> getHeaderNames() {
+                    List<String> names = Collections.list(super.getHeaderNames());
+                    return Collections.enumeration(
+                            Stream.concat(names.stream(), Stream.of("X-User-Id")).toList()
+                    );
+                }
+
+                @Override
+                public Enumeration<String> getHeaders(String name) {
+                    if ("X-User-Id".equalsIgnoreCase(name)) {
+                        return Collections.enumeration(Collections.singletonList(subject));
+                    }
+                    return super.getHeaders(name);
+                }
             };
+
             filterChain.doFilter(wrapper, response);
         } catch (Exception e) {
             log.warn("JWT validation failed: {}", e.getMessage());
@@ -68,10 +89,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write("Invalid or expired token");
-
-
         }
-
-
     }
 }
