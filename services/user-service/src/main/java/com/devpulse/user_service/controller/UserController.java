@@ -6,6 +6,7 @@ import com.devpulse.user_service.dto.responses.PersonalProfileResponse;
 import com.devpulse.user_service.dto.responses.PublicProfileResponse;
 import com.devpulse.user_service.entities.User;
 import com.devpulse.user_service.services.UserServices;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -14,10 +15,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
+@RequiredArgsConstructor
 @Controller
 public class UserController {
 
-    @Autowired
     private UserServices userServices;
 
     @PreAuthorize("isAuthenticated()")
