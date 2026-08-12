@@ -11,7 +11,7 @@ spring:
       port: 6379
 
   datasource:
-    url: jdbc:postgresql://postgres:5432/devpulse_notification
+    url: jdbc:postgresql://127.0.0.1:5432/devpulse_notifications
     username: devpulse
     password: devpulse
     driver-class-name: org.postgresql.Driver
@@ -22,6 +22,10 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: validate
+
+  graphql:
+    graphiql:
+      enabled: true
 
   flyway:
     enabled: true
@@ -56,3 +60,5 @@ logging:
     name: ${spring.application.name}.log
   level:
     com.devpulse: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
