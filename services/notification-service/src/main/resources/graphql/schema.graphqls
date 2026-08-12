@@ -1,0 +1,14 @@
+type Notification {
+    id: ID!
+    sourcePostId: ID!
+    actorEmail: String!
+    recipientEmail: String!
+    eventType: String!
+    metadata: String
+    read: Boolean!
+    createdAt: String!
+}
+
+type Query {
+    notifications(limit: Int): [Notification!]!
+}
