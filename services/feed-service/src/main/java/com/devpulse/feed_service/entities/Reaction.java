@@ -1,7 +1,6 @@
 package com.devpulse.feed_service.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,28 +12,37 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "reactions")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
-public class Post implements Persistable<UUID> {
+public class Reaction implements Persistable<UUID> {
 
     @Id
     private UUID id;
 
-    @Column(nullable = false)
-    private String authorEmail;
+    @JoinColumn(name = "post_id", nullable = false)
+    private UUID postId;
 
     @Column(nullable = false)
-    private String content;
+    private String actorEmail;
 
-    @Column
-    private String imageUrl;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReactionType reactionType;
 
     @CreatedDate
     @Column(nullable = false)
     private Instant createdAt;
+
+    public Reaction(UUID id, UUID postId, String actorEmail, ReactionType reactionType) {
+        this.id = id;
+        this.postId = postId;
+        this.actorEmail = actorEmail;
+        this.reactionType = reactionType;
+        this.isNew = true;
+    }
 
     @Transient
     private boolean isNew = true;
@@ -48,13 +56,5 @@ public class Post implements Persistable<UUID> {
     @PostPersist
     void markNotNew() {
         this.isNew = false;
-    }
-
-    public Post(UUID id, String authorEmail, String content, String imageUrl) {
-        this.id = id;
-        this.authorEmail = authorEmail;
-        this.content = content;
-        this.imageUrl = imageUrl;
-        this.isNew = true;
     }
 }
