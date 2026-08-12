@@ -60,13 +60,18 @@ flowchart TB
 - [x] **Phase 2** — `user-service`: registration, JWT (access + refresh tokens in Redis), login, logout, profile queries/mutations.
 - [x] **Phase 3** — `api-gateway`: JWT validation filter, Redis-backed rate limiting (Bucket4j), request routing, identity header propagation to downstream services.
 - [x] **Phase 4** — `feed-service`: post creation/deletion, cursor-based (keyset) pagination, Relay-style GraphQL connections, GraphQL subscriptions over `graphql-ws`, Kafka producer emitting post events.
-- [ ] **Phase 5** — `notification-service` *(in progress)*: Kafka consumer, persisted notifications, real-time delivery over STOMP/WebSocket.
+- [x] **Phase 5** — `notification-service`: Kafka consumer for post events, persisted notifications, real-time delivery over STOMP/WebSocket, Redis pub/sub for cross-instance fanout.
+- [x] **Phase 5.1** — Reactions: `feed-service` reaction mutation (create/update) publishing to a `reaction-events` Kafka topic, consumed by `notification-service` and delivered through the same WebSocket pipeline as post notifications.
 
 ### Key design decisions (Phase 4)
 
 **Cursor-based pagination over offset pagination.** Offset pagination becomes inefficient as the dataset grows — the database still has to scan and discard every skipped row, and results can shift if new rows are inserted mid-scroll. Feed pagination instead uses a composite index on `(created_at DESC, id DESC)`, where each page's cursor is the last row seen rather than a row count. This gives stable ordering under concurrent writes and maps directly onto Relay-style GraphQL connections (`edges` / `pageInfo`).
 
 **UUIDv7 over UUIDv4 for primary keys.** Random UUIDs (v4) fragment the B-tree index over time, since every insert lands in a random position. UUIDv7 embeds a timestamp prefix, so IDs are naturally sortable and inserts stay roughly sequential — combining the collision-resistance of a UUID with the index locality of an auto-increment key.
+
+### Key design decisions (Phase 5)
+
+**Redis pub/sub for cross-instance WebSocket delivery.** A user's WebSocket connection is only held by one `notification-service` instance at a time, so a naive setup would miss users connected to a different instance than the one that consumed the Kafka event. Publishing each notification to a Redis channel lets every instance subscribe and forward to its own locally-connected clients, decoupling "which instance received the Kafka message" from "which instance holds the user's socket."
 
 ## Local development setup
 
