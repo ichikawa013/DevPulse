@@ -30,9 +30,25 @@ type PostConnection {
     pageInfo: PageInfo!
 }
 
+enum ReactionType {
+LIKE
+CELEBRATE
+INSIGHTFUL
+CURIOUS
+}
+
+type Reaction {
+id: ID!
+postId: ID!
+actorEmail: String!
+reactionType: ReactionType!
+createdAt: String!
+}
+
 type Mutation {
     createPost(input: CreatePostInput!) : Post!
     deletePost(id: ID!) : Boolean!
+    reactPost(postId: ID!, reactionType: ReactionType!): Reaction!
 }
 
 type Query {

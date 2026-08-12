@@ -29,9 +29,8 @@ import java.util.UUID;
 @Service
 public class PostService {
 
-
     private final PostRepository postRepository;
-    private final KafkaTemplate<String, PostEvent> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public Post createPost(String authorEmail, CreatePostInput input) {
         Post post = new Post();
