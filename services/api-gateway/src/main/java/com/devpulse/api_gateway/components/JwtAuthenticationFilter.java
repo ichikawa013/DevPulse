@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@Order(2)
+@Order(1)
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;

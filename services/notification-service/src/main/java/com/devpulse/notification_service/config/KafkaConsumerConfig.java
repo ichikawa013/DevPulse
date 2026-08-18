@@ -48,6 +48,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, Object> postEventListenerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(postEventConsumerFactory());
+        factory.setConcurrency(3);
         return factory;
     }
 
@@ -62,6 +63,7 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, Object> reactionEventListenerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(reactionEventConsumerFactory());
+        factory.setConcurrency(3);
         return factory;
     }
 }

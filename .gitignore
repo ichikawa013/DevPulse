@@ -74,3 +74,5 @@ yarn-error.log*
 **/failsafe-reports/
 coverage/
 .nyc_output/
+load-tests/results/*
+!load-tests/results/.gitkeep

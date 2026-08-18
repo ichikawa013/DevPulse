@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:25-jdk-alpine AS builder
 
 
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY services/api-gateway/src ./src
 RUN ./mvnw package -DskipTests
 
 
-FROM eclipse-temurin:21-jre-alpine AS final-stage
+FROM eclipse-temurin:25-jre-alpine AS final-stage
 LABEL authors="pmish"
 
 WORKDIR /app

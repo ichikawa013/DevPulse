@@ -31,19 +31,19 @@ spring:
           enabled: true
           routes:
             - id: user-service
-              uri: http://localhost:8081
+              uri: ${USER_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/user/**
               filters:
                 - StripPrefix=1
             - id: feed-service
-              uri: http://localhost:8082
+              uri: ${FEED_SERVICE_URI:http://localhost:8082}
               predicates:
                 - Path=/feed/**
               filters:
                 - StripPrefix=1
             - id: media-service
-              uri: http://localhost:8083
+              uri: ${MEDIA_SERVICE_URI:http://localhost:8084}
               predicates:
                 - Path=/media/**
               filters:
