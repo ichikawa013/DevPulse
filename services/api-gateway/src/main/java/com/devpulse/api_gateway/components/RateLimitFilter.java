@@ -38,6 +38,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String ip = request.getRemoteAddr();
 
+
         //in case of load-testing this can be used
 //        String userId = request.getHeader("X-User-Id");
 //        String bucketKey = (userId != null) ? "user:" + userId : "ip:" + request.getRemoteAddr();
