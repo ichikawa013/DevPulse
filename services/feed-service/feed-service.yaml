@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: feed-service
+spec:
+  type: ClusterIP
+  selector:
+    app: feed-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feed-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feed-service
+  template:
+    metadata:
+      labels:
+        app: feed-service
+    spec:
+      containers:
+        - name: feed-service
+          image: devpulse-feed-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: JWT_SECRET
+              value: "local-test-secret-not-for-production"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://host.docker.internal:5432/devpulse_feed"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "devpulse"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "devpulse"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "host.docker.internal"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "host.docker.internal:9092"

@@ -51,8 +51,12 @@ flowchart TB
 | `api-gateway` | 8080 | JWT validation, rate limiting, routing to downstream services |
 | `user-service` | 8081 | Registration, login, JWT issuance, refresh tokens, profile |
 | `feed-service` | 8082 | Posts, cursor-paginated feed, GraphQL subscriptions, Kafka producer |
-| `media-service` | 8083 | Image uploads via MinIO, presigned URLs |
-| `notification-service` | TBD | Kafka consumer, persists and pushes notifications over STOMP/WebSocket |
+| `notification-service` | 8083 | Kafka consumer, persists and pushes notifications over STOMP/WebSocket |
+| `media-service` | 8084 | Server-side image upload (compress/resize, then store) for post images and profile pictures via MinIO |
+
+## Load testing
+
+The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-tested end-to-end with k6, including a multi-instance Redis fanout check and gateway rate-limit validation. See [`load-tests/README.md`](./load-tests/README.md) for results, methodology, and known limitations.
 
 ## Progress
 
@@ -62,6 +66,7 @@ flowchart TB
 - [x] **Phase 4** — `feed-service`: post creation/deletion, cursor-based (keyset) pagination, Relay-style GraphQL connections, GraphQL subscriptions over `graphql-ws`, Kafka producer emitting post events.
 - [x] **Phase 5** — `notification-service`: Kafka consumer for post events, persisted notifications, real-time delivery over STOMP/WebSocket, Redis pub/sub for cross-instance fanout.
 - [x] **Phase 5.1** — Reactions: `feed-service` reaction mutation (create/update) publishing to a `reaction-events` Kafka topic, consumed by `notification-service` and delivered through the same WebSocket pipeline as post notifications.
+- [ ] **Phase 6** — `media-service`: server-side image upload for post images and profile pictures. Client sends a multipart file directly to `media-service` (no presigned MinIO URLs), which validates the real file type (Apache Tika, not the client-supplied `Content-Type`), compresses/resizes it, stores it in MinIO, and returns a URL — which the client then passes into the existing `createPost`/`updateProfile` mutations. Exposed as a plain REST multipart endpoint rather than GraphQL, since GraphQL's multipart upload spec adds more setup than it's worth here. No Kafka event on upload — this flow needs no cross-service messaging.
 
 ### Key design decisions (Phase 4)
 
