@@ -54,9 +54,9 @@ flowchart TB
 | `user-service` | 8081 | Registration, login, JWT issuance, refresh tokens, profile |
 | `feed-service` | 8082 | Posts, cursor-paginated feed, GraphQL subscriptions, Kafka producer |
 | `notification-service` | 8083 | Kafka consumer, persists and pushes notifications over STOMP/WebSocket |
-| `media-service` | 8084 | Server-side image upload (compress/resize, then store) for post images and profile pictures via MinIO |
-| `ai` | 8085 | Spring AI observability service with tool implementations for Kafka lag, pod status, logs, and latency monitoring |
-| `agent` | 8086 | MCP observability agent server, integrating with local Kubernetes cluster for real-time monitoring |
+| `media-service` | 8084 | Server-side image upload for post images and profile pictures via MinIO (scaffolded, not yet implemented) |
+| `ai` | — | Spring AI MCP server exposing observability tools: Kafka lag, pod status, logs, and latency |
+| `agent` | — | Agentic client (Gemini-backed) that calls the `ai` MCP server to answer observability queries |
 
 ## Load testing
 
@@ -70,9 +70,21 @@ The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-test
 - [x] **Phase 4** — `feed-service`: post creation/deletion, cursor-based (keyset) pagination, Relay-style GraphQL connections, GraphQL subscriptions over `graphql-ws`, Kafka producer emitting post events.
 - [x] **Phase 5** — `notification-service`: Kafka consumer for post events, persisted notifications, real-time delivery over STOMP/WebSocket, Redis pub/sub for cross-instance fanout.
 - [x] **Phase 5.1** — Reactions: `feed-service` reaction mutation (create/update) publishing to a `reaction-events` Kafka topic, consumed by `notification-service` and delivered through the same WebSocket pipeline as post notifications.
-- [x] **Phase 6** — `media-service`: server-side image upload for post images and profile pictures. Client sends a multipart file directly to `media-service` (no presigned MinIO URLs), which validates the real file type (Apache Tika, not the client-supplied `Content-Type`), compresses/resizes it, stores it in MinIO, and returns a URL — which the client then passes into the existing `createPost`/`updateProfile` mutations. Exposed as a plain REST multipart endpoint rather than GraphQL, since GraphQL's multipart upload spec adds more setup than it's worth here. No Kafka event on upload — this flow needs no cross-service messaging.
+- [ ] **Phase 6** — `media-service`: server-side image upload for post images and profile pictures. Client sends a multipart file directly to `media-service` (no presigned MinIO URLs), which validates the real file type (Apache Tika, not the client-supplied `Content-Type`), compresses/resizes it, stores it in MinIO, and returns a URL — which the client then passes into the existing `createPost`/`updateProfile` mutations. Exposed as a plain REST multipart endpoint rather than GraphQL, since GraphQL's multipart upload spec adds more setup than it's worth here. No Kafka event on upload — this flow needs no cross-service messaging.
 - [x] **Phase 6.1** — Kubernetes deployment: service deployment manifests in `k8/` for gateway, user-service, feed-service, and notification-service; local `kind` cluster configuration for local development and testing.
 - [x] **Phase 6.2** — Observability: AI-powered observability agent with Spring AI integration, exposing tools to query Kafka lag, pod status, system logs, and inter-service latency — enabling real-time cluster troubleshooting.
+
+## Releases
+
+| Version | Phase | Key Features |
+|---|---|---|
+| [v0.2.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.2.0) | Phase 2 | User service: registration, login, JWT (access + refresh tokens), profile management |
+| [v0.3.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.3.0) | Phase 3 | API gateway: JWT validation, Redis-backed rate limiting (Bucket4j), request routing |
+| [v0.4.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.4.0) | Phase 4 | Feed service: post creation/deletion, cursor-based pagination, GraphQL subscriptions, Kafka producer |
+| [v0.5.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.0) | Phase 5 | Notification service: Kafka consumer, Redis pub/sub fanout, STOMP/WebSocket delivery |
+| [v0.5.1](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.1) | Phase 5.1 | Reactions: GraphQL mutation in feed-service, Kafka producer, consumer delivery in notification-service |
+| [v0.5.2](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.2) | Phase 5.2 | Fix: IP address-based rate limiting restoration |
+| [v0.6.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.6.0) | Phase 6.1 + 6.2 | Kubernetes deployment (kind), AI observability agent (Spring AI + MCP) |
 
 ### Key design decisions (Phase 4)
 
