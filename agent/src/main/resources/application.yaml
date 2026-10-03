@@ -1,0 +1,26 @@
+spring:
+  main:
+    web-application-type: none
+
+  application:
+    name: devpulse-agent
+
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: devpulse-agent
+        version: 1.0.0
+        type: SYNC
+        request-timeout: 20s
+        stdio:
+          servers-configuration: classpath:/mcp-servers-config.json
+        toolcallback:
+          enabled: true
+
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          options:
+            model: gemini-3.8-flash

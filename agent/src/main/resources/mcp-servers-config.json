@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "devpulse-ops": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "C:/Projects/DevPulse/ai/target/ai-0.0.1-SNAPSHOT.jar"
+      ]
+    }
+  }
+}

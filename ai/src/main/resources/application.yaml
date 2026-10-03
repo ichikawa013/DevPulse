@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: ai
+  main:
+    banner-mode: off
+  ai:
+    retry:
+      on-http-codes: 429
+      max-attempts: 1
+      backoff:
+        initial-interval: 2s
+        multiplier: 2
+        max-interval: 20s
+    mcp:
+      server:
+        stdio: true
+        type: SYNC
+        annotation-scanner:
+          enabled: true
+
+devpulse:
+  logs:
+    path: ./logs
