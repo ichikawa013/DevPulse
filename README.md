@@ -84,7 +84,8 @@ The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-test
 | [v0.5.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.0) | Phase 5 | Notification service: Kafka consumer, Redis pub/sub fanout, STOMP/WebSocket delivery |
 | [v0.5.1](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.1) | Phase 5.1 | Reactions: GraphQL mutation in feed-service, Kafka producer, consumer delivery in notification-service |
 | [v0.5.2](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.2) | Phase 5.2 | Fix: IP address-based rate limiting restoration |
-| [v0.6.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.6.0) | Phase 6.1 + 6.2 | Kubernetes deployment (kind), AI observability agent (Spring AI + MCP) |
+| [v0.6.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.6.0) | Phase 6.1 | Kubernetes deployment (kind): service manifests for gateway, user-service, feed-service, notification-service |
+| [v0.7.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.7.0) | Phase 6.2 | AI observability agent: Spring AI MCP server (Kafka lag, pod status, logs, latency) + Gemini-backed agent client |
 
 ### Key design decisions (Phase 4)
 
