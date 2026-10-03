@@ -4,7 +4,7 @@ import { check, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
-const NOTIFY_WAIT_TIMEOUT_MS = 15000;
+const NOTIFY_WAIT_TIMEOUT_MS = 60000; // bumped from 15000 — gives time under load and during degradation
 const VUS = __ENV.VUS ? parseInt(__ENV.VUS) : 10;
 
 export const e2eLatency = new Trend('e2e_post_latency_ms', true);
@@ -19,12 +19,24 @@ export const options = {
       startTime: '0s',
     },
     measured: {
-      executor: 'shared-iterations',
+      executor: 'ramping-vus',   // changed from shared-iterations — gives a timeline instead of a flat burst
       exec: 'measured',
-      vus: VUS,
-      iterations: Math.max(VUS, 100),
       startTime: '15s',
+      stages: [
+        { duration: '30s', target: VUS },   // ramp up
+        { duration: '2m',  target: VUS },   // steady state — break notification-service here at ~45s in
+        { duration: '30s', target: 0   },   // ramp down
+      ],
     },
+  },
+
+  thresholds: {
+    // feed error rate must stay under 5% (will fail during the intentional break — that's the point)
+    'http_req_failed{url:http://localhost:8080/feed/graphql}': ['rate<0.05'],
+    // e2e notification latency p95 under 10s
+    'e2e_post_latency_ms': ['p(95)<10000'],
+    // at least 90% of all checks must pass
+    'checks': ['rate>0.90'],
   },
 };
 
@@ -45,21 +57,16 @@ export function parseStompFrame(raw) {
 
   for (let i = 1; i < lines.length; i++) {
     const idx = lines[i].indexOf(':');
-
     if (idx > -1) {
       headers[lines[i].slice(0, idx)] = lines[i].slice(idx + 1);
     }
   }
 
-  return {
-    command,
-    headers,
-    body: bodyParts.join('\n\n'),
-  };
+  return { command, headers, body: bodyParts.join('\n\n') };
 }
 
 function runPipeline(shouldRecord) {
-  const email = `test_${uuidv4()}@example.com`;
+  const email    = `test_${uuidv4()}@example.com`;
   const password = 'testpassword123';
   const username = `smoke_${uuidv4().slice(0, 8)}`;
 
@@ -68,35 +75,27 @@ function runPipeline(shouldRecord) {
     JSON.stringify({
       query: `mutation{register(input:{username:"${username}",email:"${email}",password:"${password}"}){accessToken}}`,
     }),
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
+    { headers: { 'Content-Type': 'application/json' } },
   );
 
   check(registerUser, {
     'register succeeded': (r) =>
-      r.status === 200 &&
-      r.json('data.register.accessToken') != null,
+      r.status === 200 && r.json('data.register.accessToken') != null,
   });
 
   const token = registerUser.json('data.register.accessToken');
 
   if (!token) {
-    console.error(
-      'Registration failed, aborting VU:',
-      registerUser.body,
-    );
+    console.error('Registration failed, aborting VU:', registerUser.body);
     return;
   }
 
   const wsUrl = `ws://localhost:8083/ws?userId=${encodeURIComponent(email)}`;
 
-  let subscribed = false;
+  let subscribed           = false;
   let notificationReceived = false;
-  let postId = null;
-  let t0 = null;
+  let postId               = null;
+  let t0                   = null;
 
   const res = ws.connect(wsUrl, {}, function (socket) {
     socket.on('open', () => {
@@ -108,13 +107,7 @@ function runPipeline(shouldRecord) {
 
       if (frame.command === 'CONNECTED' && !subscribed) {
         subscribed = true;
-
-        socket.send(
-          stompSubscribeFrame(
-            '/user/queue/notifications',
-            'sub-0',
-          ),
-        );
+        socket.send(stompSubscribeFrame('/user/queue/notifications', 'sub-0'));
 
         t0 = Date.now();
 
@@ -127,23 +120,20 @@ function runPipeline(shouldRecord) {
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
+              'X-User-Id': email,
             },
           },
         );
 
         check(createRes, {
           'createPost succeeded': (r) =>
-            r.status === 200 &&
-            r.json('data.createPost.id') != null,
+            r.status === 200 && r.json('data.createPost.id') != null,
         });
 
         postId = createRes.json('data.createPost.id');
 
         if (!postId) {
-          console.error(
-            'createPost failed, closing socket:',
-            createRes.body,
-          );
+          console.error('createPost failed, closing socket:', createRes.body);
           socket.close();
         }
       }
@@ -153,7 +143,7 @@ function runPipeline(shouldRecord) {
           const payload = JSON.parse(frame.body);
 
           if (payload.sourcePostId === postId) {
-            const t1 = Date.now();
+            const t1      = Date.now();
             const latency = t1 - t0;
 
             if (shouldRecord) {
@@ -161,18 +151,11 @@ function runPipeline(shouldRecord) {
             }
 
             notificationReceived = true;
-
-            console.log(
-              `Received matching notification. E2E latency: ${latency}ms`,
-            );
-
+            console.log(`Received matching notification. E2E latency: ${latency}ms`);
             socket.close();
           }
         } catch (e) {
-          console.error(
-            'Failed to parse notification body:',
-            frame.body,
-          );
+          console.error('Failed to parse notification body:', frame.body);
         }
       }
     });
@@ -187,7 +170,6 @@ function runPipeline(shouldRecord) {
           `Timed out after ${NOTIFY_WAIT_TIMEOUT_MS}ms waiting for notification. postId=${postId}`,
         );
       }
-
       socket.close();
     }, NOTIFY_WAIT_TIMEOUT_MS);
   });
@@ -200,13 +182,8 @@ function runPipeline(shouldRecord) {
     'notification received before timeout': () => notificationReceived,
   });
 
-  sleep(1);
+  sleep(2); // bumped from 1 → 2 to halve the per-VU request rate and reduce 429s on feed
 }
 
-export function warmup() {
-  runPipeline(false);
-}
-
-export function measured() {
-  runPipeline(true);
-}
+export function warmup()  { runPipeline(false); }
+export function measured() { runPipeline(true);  }
