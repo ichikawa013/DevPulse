@@ -28,6 +28,7 @@ flowchart TB
 ```
 
 **Design principles:**
+
 - Each service owns its own database (schema-per-service) — no shared tables across services.
 - The gateway is a pure proxy: it validates JWTs and rate-limits once at the edge, then forwards a trusted `X-User-Id` header downstream. No other service re-validates JWTs.
 - Each service owns its own GraphQL schema; the gateway does not aggregate or expose GraphQL itself.
@@ -42,25 +43,33 @@ flowchart TB
 - **Messaging:** Apache Kafka
 - **Object storage:** MinIO
 - **Auth:** JWT (jjwt), Spring Security
-- **AI / Observability:** Spring AI 1.1.6
+- **Observability:** Micrometer Tracing (Brave bridge), Micrometer Registry Prometheus, distributed trace correlation (B3 propagation) across all 5 services, including trace continuity across the Kafka publish/consume boundary
+- **AI / MCP:** Spring AI 1.1.6, Model Context Protocol (MCP) server + agentic client (Gemini-backed)
 - **Orchestration:** Docker Compose (local), Kubernetes (kind for local cluster)
 - **Load testing:** k6
 
 ## Services
 
-| Service | Port | Responsibility |
-|---|---|---|
-| `api-gateway` | 8080 | JWT validation, rate limiting, routing to downstream services |
-| `user-service` | 8081 | Registration, login, JWT issuance, refresh tokens, profile |
-| `feed-service` | 8082 | Posts, cursor-paginated feed, GraphQL subscriptions, Kafka producer |
-| `notification-service` | 8083 | Kafka consumer, persists and pushes notifications over STOMP/WebSocket |
-| `media-service` | 8084 | Server-side image upload for post images and profile pictures via MinIO (scaffolded, not yet implemented) |
-| `ai` | — | Spring AI MCP server exposing observability tools: Kafka lag, pod status, logs, and latency |
-| `agent` | — | Agentic client (Gemini-backed) that calls the `ai` MCP server to answer observability queries |
+| Service                | Port | Responsibility                                                                                            |
+| ---------------------- | ---- | --------------------------------------------------------------------------------------------------------- |
+| `api-gateway`          | 8080 | JWT validation, rate limiting, routing to downstream services                                             |
+| `user-service`         | 8081 | Registration, login, JWT issuance, refresh tokens, profile                                                |
+| `feed-service`         | 8082 | Posts, cursor-paginated feed, GraphQL subscriptions, Kafka producer                                       |
+| `notification-service` | 8083 | Kafka consumer, persists and pushes notifications over STOMP/WebSocket                                    |
+| `media-service`        | 8084 | Server-side image upload for post images and profile pictures via MinIO (scaffolded, not yet implemented) |
+| `ai`                   | —    | Spring AI MCP server exposing observability tools: Kafka lag, pod status, logs, and latency               |
+| `agent`                | —    | Agentic client (Gemini-backed) that calls the `ai` MCP server to answer observability queries             |
 
 ## Load testing
 
-The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-tested end-to-end with k6, including a multi-instance Redis fanout check and gateway rate-limit validation. See [`load-tests/README.md`](./load-tests/README.md) for results, methodology, and known limitations.
+The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-tested end-to-end with k6, measuring the full post-to-notification delivery latency under concurrent load across the gateway, feed-service, Kafka, and notification-service.
+
+**Results (measured scenario, 75 concurrent users):**
+- 0 failures across 2,280 checks
+- Median end-to-end latency: 108 ms (10 VUs) → 461 ms (75 VUs)
+- Rate limiter correctly throttled excess requests while maintaining 78–170 ms average response time for accepted requests
+
+See [`load-tests/README.md`](load-tests/README.md) for full methodology, per-stage breakdown, and known limitations.
 
 ## Progress
 
@@ -72,19 +81,19 @@ The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-test
 - [x] **Phase 5.1** — Reactions: `feed-service` reaction mutation (create/update) publishing to a `reaction-events` Kafka topic, consumed by `notification-service` and delivered through the same WebSocket pipeline as post notifications.
 - [ ] **Phase 6** — `media-service`: server-side image upload for post images and profile pictures. Client sends a multipart file directly to `media-service` (no presigned MinIO URLs), which validates the real file type (Apache Tika, not the client-supplied `Content-Type`), compresses/resizes it, stores it in MinIO, and returns a URL — which the client then passes into the existing `createPost`/`updateProfile` mutations. Exposed as a plain REST multipart endpoint rather than GraphQL, since GraphQL's multipart upload spec adds more setup than it's worth here. No Kafka event on upload — this flow needs no cross-service messaging.
 - [x] **Phase 6.1** — Kubernetes deployment: service deployment manifests in `k8/` for gateway, user-service, feed-service, and notification-service; local `kind` cluster configuration for local development and testing.
-- [x] **Phase 6.2** — Observability: AI-powered observability agent with Spring AI integration, exposing tools to query Kafka lag, pod status, system logs, and inter-service latency — enabling real-time cluster troubleshooting.
+- [x] **Phase 6.2** — Observability: AI ops agent that answers natural-language questions about system health by querying real service logs, Prometheus latency histograms (p50/p95/p99), and Kafka consumer lag — backed by full distributed trace correlation across all 5 services via Micrometer Tracing (Brave/B3 propagation), including trace continuity across the Kafka publish/consume boundary. MCP server and agentic client built with Spring AI 1.1.6.
 
 ## Releases
 
-| Version | Phase | Key Features |
-|---|---|---|
-| [v0.2.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.2.0) | Phase 2 | User service: registration, login, JWT (access + refresh tokens), profile management |
-| [v0.3.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.3.0) | Phase 3 | API gateway: JWT validation, Redis-backed rate limiting (Bucket4j), request routing |
-| [v0.4.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.4.0) | Phase 4 | Feed service: post creation/deletion, cursor-based pagination, GraphQL subscriptions, Kafka producer |
-| [v0.5.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.0) | Phase 5 | Notification service: Kafka consumer, Redis pub/sub fanout, STOMP/WebSocket delivery |
-| [v0.5.1](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.1) | Phase 5.1 | Reactions: GraphQL mutation in feed-service, Kafka producer, consumer delivery in notification-service |
-| [v0.5.2](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.2) | Phase 5.2 | Fix: IP address-based rate limiting restoration |
-| [v0.6.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.6.0) | Phase 6.1 | Kubernetes deployment (kind): service manifests for gateway, user-service, feed-service, notification-service |
+| Version                                                               | Phase     | Key Features                                                                                                     |
+| --------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------- |
+| [v0.2.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.2.0) | Phase 2   | User service: registration, login, JWT (access + refresh tokens), profile management                             |
+| [v0.3.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.3.0) | Phase 3   | API gateway: JWT validation, Redis-backed rate limiting (Bucket4j), request routing                              |
+| [v0.4.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.4.0) | Phase 4   | Feed service: post creation/deletion, cursor-based pagination, GraphQL subscriptions, Kafka producer             |
+| [v0.5.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.0) | Phase 5   | Notification service: Kafka consumer, Redis pub/sub fanout, STOMP/WebSocket delivery                             |
+| [v0.5.1](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.1) | Phase 5.1 | Reactions: GraphQL mutation in feed-service, Kafka producer, consumer delivery in notification-service           |
+| [v0.5.2](https://github.com/ichikawa013/DevPulse/releases/tag/v0.5.2) | Phase 5.2 | Fix: IP address-based rate limiting restoration                                                                  |
+| [v0.6.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.6.0) | Phase 6.1 | Kubernetes deployment (kind): service manifests for gateway, user-service, feed-service, notification-service    |
 | [v0.7.0](https://github.com/ichikawa013/DevPulse/releases/tag/v0.7.0) | Phase 6.2 | AI observability agent: Spring AI MCP server (Kafka lag, pod status, logs, latency) + Gemini-backed agent client |
 
 ### Key design decisions (Phase 4)
@@ -101,30 +110,37 @@ The async pipeline (HTTP → Kafka → Redis pub/sub → WebSocket) is load-test
 
 **Kubernetes-first deployment.** Service manifests in `k8/` are written to deploy the gateway, user-service, feed-service, and notification-service to a local `kind` cluster. This enables testing multi-instance scaling, cross-zone networking, and cluster-level observability patterns without leaving the development machine.
 
-**AI-powered observability.** The `ai` module exposes observability tools via Spring AI (KafkaLagTool, PodStatusTool, LogTool, LatencyTool), enabling LLM-driven queries like "What's the current Kafka lag?" or "Which pod is consuming the most CPU?" The `agent` module wraps these as an MCP server, integrating with IDE and AI tooling for real-time cluster insights.
+**AI-powered observability.** The `ai` module is a Spring AI MCP server exposing real observability tools (KafkaLagTool, PodStatusTool, LogTool, LatencyTool) backed by real data: structured service logs with full distributed trace correlation (B3/Brave propagation across HTTP and Kafka hops), live Prometheus metrics (p50/p95/p99 latency histograms per endpoint), and Kafka consumer group lag per partition. The `agent` module is an MCP client (Gemini-backed) that calls these tools to answer natural-language questions like "why was notification-service slow?" or "what's the current Kafka lag on post-events?" with accurate, data-grounded answers.
 
 ## Kubernetes deployment
 
 Deploy to a local `kind` cluster:
 
 1. Create the cluster with port mapping:
-   ```bash
-   kind create cluster --config kind_config.yaml
-   ```
+
+```
+kind create cluster --config kind_config.yaml
+```
+
 2. Build and load images into kind:
-   ```bash
-   docker build -t api-gateway:latest ./services/api-gateway
-   kind load docker-image api-gateway:latest
-   # Repeat for each service
-   ```
+
+```
+docker build -t api-gateway:latest ./services/api-gateway
+kind load docker-image api-gateway:latest
+# Repeat for each service
+```
+
 3. Apply service manifests:
-   ```bash
-   kubectl apply -f k8/
-   ```
+
+```
+kubectl apply -f k8/
+```
+
 4. Forward the API gateway port:
-   ```bash
-   kubectl port-forward svc/api-gateway 8080:8080
-   ```
+
+```
+kubectl port-forward svc/api-gateway 8080:8080
+```
 
 The gateway is then accessible at `http://localhost:8080`.
 
@@ -134,16 +150,16 @@ The `ai` and `agent` modules provide real-time observability:
 
 - **Kafka Lag Tool** — queries current consumer group lag per partition
 - **Pod Status Tool** — lists pods, their resource usage (CPU/memory), and restart counts
-- **Log Tool** — streams logs from any pod in the cluster
-- **Latency Tool** — measures inter-service request latencies and histograms
+- **Log Tool** — streams logs from any pod in the cluster, queryable by traceId for cross-service correlation
+- **Latency Tool** — queries Prometheus latency histograms (p50/p95/p99) per service and endpoint
 
-These tools are exposed as MCP server endpoints, allowing integration with IDE plugins, AI chat interfaces, or custom dashboards.
+These tools are exposed as an MCP server, allowing integration with IDE plugins, AI chat interfaces, or custom dashboards. All log data carries distributed trace IDs (B3 propagation via Micrometer Tracing), so the agent can correlate a slow notification delivery back to the originating HTTP request across all 5 services.
 
 ### Testing observability with load and failure scenarios
 
 Generate logs and metrics for the observability agent to consume:
 
-```bash
+```
 docker compose up -d
 cd load-tests
 k6 run -e VUS=10 loadtest.js
@@ -153,7 +169,7 @@ k6 run -e VUS=50 loadtest.js
 
 For crash testing and log generation, scale service replicas:
 
-```bash
+```
 # Scale notification-service to 3 replicas (watch for failover)
 kubectl scale deployment notification-service --replicas=3
 
@@ -171,9 +187,11 @@ The observability agent will track Kafka lag, pod failures, recovery times, and 
 **Prerequisites:** Docker, JDK 25, IntelliJ IDEA (or any IDE with Maven support)
 
 1. Start infrastructure (PostgreSQL, Redis, Kafka, MinIO):
-   ```bash
-   docker compose up -d
-   ```
+
+```
+docker compose up -d
+```
+
 2. Run each service from IntelliJ run configurations (or `mvn spring-boot:run` per module).
 3. Notes on local config:
     - PostgreSQL should be addressed as `127.0.0.1:5432`, not `localhost`, to avoid a Windows IPv6 resolution issue.
