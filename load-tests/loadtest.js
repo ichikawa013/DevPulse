@@ -90,7 +90,7 @@ function runPipeline(shouldRecord) {
     return;
   }
 
-  const wsUrl = `ws://localhost:8083/ws?userId=${encodeURIComponent(email)}`;
+  const wsUrl = `ws://localhost:30083/ws?userId=${encodeURIComponent(email)}`;
 
   let subscribed           = false;
   let notificationReceived = false;

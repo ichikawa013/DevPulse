@@ -19,7 +19,7 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class UserController {
 
-    private UserServices userServices;
+    private final UserServices userServices;
 
     @PreAuthorize("isAuthenticated()")
     @QueryMapping

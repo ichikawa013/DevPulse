@@ -67,8 +67,21 @@ management:
   server:
     port: 8082
   metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
     tags:
       application: ${spring.application.name}
+  tracing:
+    enabled: true
+    propagation:
+      type: B3
+
+    sampling:
+      probability: 1.0
+
 
 logging:
   file:

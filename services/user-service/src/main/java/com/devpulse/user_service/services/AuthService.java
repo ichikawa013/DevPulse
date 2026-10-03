@@ -98,6 +98,8 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
 
+        log.info("Login by {}", loginRequest.getEmail());
+
         redisTemplate.opsForValue().set(
                 "refresh_token:" + userDetails.getUsername(),
                 refreshToken,
@@ -129,11 +131,13 @@ public class AuthService {
         }
 
         String newAccessToken = jwtService.generateAccessToken(userDetails);
+        log.info("Access Token refreshed for {}", userDetails.getUsername());
 
         return new AuthResponse(newAccessToken, null, jwtExpiration, "Bearer");
     }
 
     public void logout(String username) {
+        log.info("Logout by {}", username);
         redisTemplate.delete("refresh_token:" + username);
     }
 

@@ -75,4 +75,4 @@ yarn-error.log*
 coverage/
 .nyc_output/
 load-tests/results/*
-!load-tests/results/.gitkeep
+!load-tests/results/.gitkeepservices/user-service/.run/

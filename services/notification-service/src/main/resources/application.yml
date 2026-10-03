@@ -7,15 +7,13 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
 
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/devpulse_notifications
-    username: devpulse
-    password: devpulse
-    driver-class-name: org.postgresql.Driver
-
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/devpulse_notifications}
+    username: ${SPRING_DATASOURCE_USERNAME:devpulse}
+    password: ${SPRING_DATASOURCE_PASSWORD:devpulse}
 
   jpa:
     database: POSTGRESQL
@@ -33,17 +31,28 @@ spring:
     locations: classpath:db/migration
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: host.docker.internal:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
     consumer:
       group-id: notification-service-group
-      bootstrap-servers: localhost:9092
+#      bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 management:
+  distribution:
+    percentiles-histogram:
+      http:
+        server:
+          requests: true
+  tracing:
+    enabled: true
+    propagation:
+      type: B3
+    sampling:
+      probability: 1.0
   endpoints:
     web:
       exposure:

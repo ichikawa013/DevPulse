@@ -17,6 +17,8 @@
     </parent>
 
     <modules>
+        <module>ai</module>
+        <module>agent</module>
         <module>services/api-gateway</module>
         <module>services/user-service</module>
         <module>services/feed-service</module>
@@ -29,6 +31,7 @@
         <jjwt.version>0.12.5</jjwt.version>
         <testcontainers.version>1.20.6</testcontainers.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-ai.version>1.0.9</spring-ai.version>
     </properties>
 
     <dependencyManagement>
@@ -57,12 +60,21 @@
             </dependency>
 
             <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.1.6</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
         </dependencies>
     </dependencyManagement>
 

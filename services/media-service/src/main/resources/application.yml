@@ -18,6 +18,11 @@ minio:
   bucket-name: devpulse-media
 
 management:
+  distribution:
+    percentiles-histogram:
+      http:
+        server:
+          requests: true
   endpoints:
     web:
       exposure:
@@ -33,6 +38,9 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
 
 logging:
   file:

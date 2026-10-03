@@ -32,24 +32,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         if(path.startsWith("/user/") || path.startsWith("/actuator")) {
+            log.info("user/actuator endpoint activated");
             filterChain.doFilter(request, response);
             return;
         }
 
-        String ip = request.getRemoteAddr();
+//        String ip = request.getRemoteAddr();
 
 
-        //in case of load-testing this can be used
-//        String userId = request.getHeader("X-User-Id");
-//        String bucketKey = (userId != null) ? "user:" + userId : "ip:" + request.getRemoteAddr();
+//        in case of load-testing this can be used
+        String userId = request.getHeader("X-User-Id");
+        String bucketKey = (userId != null) ? "user:" + userId : "ip:" + request.getRemoteAddr();
 
-        Bucket bucket = proxyManager.getProxy(ip, () -> bucketConfiguration);
+        Bucket bucket = proxyManager.getProxy(bucketKey, () -> bucketConfiguration);
 
         try{
             if(bucket.tryConsume(1))
                 filterChain.doFilter(request, response);
             else {
-                log.warn("Rate limit exceeded for IP: {}", ip);
+                log.warn("Rate limit exceeded for IP: {}", bucketKey);
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setContentType("application/json");
                 response.addHeader("Retry-After", "60");

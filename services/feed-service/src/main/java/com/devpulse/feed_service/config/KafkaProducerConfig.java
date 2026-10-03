@@ -1,6 +1,6 @@
 package com.devpulse.feed_service.config;
 
-import com.devpulse.feed_service.dto.events.PostEvent;
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -32,7 +32,16 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+    public KafkaTemplate<String, Object> kafkaTemplate(
+            ProducerFactory<String, Object> producerFactory,
+            ObservationRegistry observationRegistry) {
+
+        KafkaTemplate<String, Object> kafkaTemplate =
+                new KafkaTemplate<>(producerFactory);
+
+        kafkaTemplate.setObservationEnabled(true);
+        kafkaTemplate.setObservationRegistry(observationRegistry);
+
+        return kafkaTemplate;
     }
 }

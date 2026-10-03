@@ -35,10 +35,12 @@ public class ReactionService {
                 .orElseGet(() -> new Reaction(UUIDv7.randomUUID(), input.getPostId(), input.getActorEmail(), input.getReactionType()));
 
         reactionRepository.save(reaction);
+        log.info("Reaction by {} on post {}", input.getActorEmail(), post.getId());
 
         kafkaTemplate.send("reaction-events", new ReactionEvent(
                 input.getPostId(), input.getActorEmail(), post.getAuthorEmail(), input.getReactionType().name(), Instant.now()
         ));
+        log.info("Reaction event published for {}", reaction.getPostId());
 
         return reaction;
     }

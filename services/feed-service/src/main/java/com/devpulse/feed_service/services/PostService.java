@@ -40,11 +40,11 @@ public class PostService {
         post.setImageUrl(input.imageUrl());
 
         postRepository.save(post);
-        log.info("createdAt after save = {}", post.getCreatedAt());
+        log.info("Post createdAt after save = {}", post.getCreatedAt());
 
         PostEvent event = new PostEvent(post.getId(), post.getAuthorEmail(), post.getContent(), post.getCreatedAt());
+        log.info("Post event published {}", event.postId());
         kafkaTemplate.send("post-events", event);
-
         return post;
     }
 
@@ -53,10 +53,13 @@ public class PostService {
                 .orElseThrow(() -> new NoSuchElementException("Post not found"));
 
         if (!post.getAuthorEmail().equals(callerEmail)) {
+            log.warn("Unauthorized access attempted by {}", callerEmail);
             throw new AccessDeniedException("Not authorized to delete this post");
         }
 
+        log.warn("Post deleted {}", post.getId());
         postRepository.delete(post);
+
         return true;
     }
 
